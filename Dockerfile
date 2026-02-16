@@ -1,9 +1,22 @@
 # ---- build stage ----
   FROM composer:2 AS vendor
   WORKDIR /app
+  
+  # Install dependencies without running scripts (artisan isn't copied yet)
   COPY composer.json composer.lock ./
-  RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
+  RUN composer install \
+    --no-dev \
+    --prefer-dist \
+    --no-interaction \
+    --no-progress \
+    --optimize-autoloader \
+    --no-scripts
+  
+  # Copy the rest of the application (including artisan)
   COPY . .
+  
+  # Now it's safe to run package discovery (optional but useful)
+  RUN php artisan package:discover --ansi || true
   
   # ---- runtime stage ----
   FROM php:8.3-fpm-alpine
@@ -25,4 +38,3 @@
   
   EXPOSE 8080
   CMD ["/start.sh"]
-  
